@@ -1,16 +1,20 @@
-This is an AI research agent which goes to internet to find out content for you, scrape and summarize, ultimately present a solution
+This is an AI research agent that searches the internet to find content for you, scrapes and summarizes it, and ultimately presents a solution.
 
-To run it locally, put the commands in order, make sure you have python 3.9 and above and pip installed
+To run it locally, follow these steps. Make sure you have Python 3.9 or above and pip installed:
 
-Setup a free openai key and put it in a .env file like this 
+Set up a free OpenAI key and put it in a .env file like this:
 
 OPENAI_API_KEY = "your key here in quotes"
 
 
+Create a virtual environment and install the required packages:
 1. python -m venv venv
 2. pip install -r requirements.txt
+
+Run the application using Streamlit:
 3. streamlit run main.py
 
 Thats it...
+
 Happy Researching....
 
