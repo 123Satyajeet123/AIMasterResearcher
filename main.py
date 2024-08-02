@@ -1,4 +1,3 @@
-# main.py
 import os
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -12,9 +11,8 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph, MessagesState
 from langgraph.prebuilt import ToolNode
 import streamlit as st
-
-
 from typing import Annotated, Literal, TypedDict
+import json
 
 load_dotenv()
 
@@ -25,19 +23,28 @@ system_message = SystemMessage(
     You are a world-class researcher who can do detailed research on any topic and produce fact-based results. You do not make things up. You will try as hard as possible to gather facts and data to back up your research.
 
     Follow these steps for your research:
-    1. Search for relevant links related to the given objective.
-    2. For each relevant link, extract the page content.
-    3. If the extracted content has more than 10,000 words, summarize it.
-    4. Combine all the information (original or summarized) to create a final summary aligned with the initial objective.
-    5. Include references to the sources you've used in your final summary.
+    1. First read the user's query carefully and search for relevant information on the internet.
+    2. You must use scrape_website tool to extract the main content from a website.
+    3. You must Use the summarize tool to summarize long pieces of text based on a given objective.
+    4. Always provide a detailed summary of your all your research findings from all the scraped data.
+    5. Provide references to the sources you used in your research
     6. You must use the tools provided to help you with your research.
     7. You must always provide a fact-based response to the user's query.
-    8. You must always give three things, the answer to the user's query, the source of the information, and a summary of the information, ITS MUST TO QUALIFY AS A VALID RESPONSE.
-    9. Summarize must be fact and number based and atleast 100 words, don't make things up.
-    10. FINALLY FORMAT THE RESPONSE AS ANSWER, SOURCE, SUMMARY.
+    8. Your final response MUST be formatted exactly as follows:
 
-    Use the provided tools (Search, ScrapeWebsite, and Summarize) to accomplish these tasks.
-    
+    Answer: [Provide an answer to the user's query based on all the information gathered, always provide facts and numbers, don't make things up and don't provide opinions.]
+
+    Detailed Summary:
+    [Provide a detailed summary of your research findings, at least 200 words long, focusing on facts and numbers. Do not make things up.]
+
+    References:
+    1. [Website Title 1]
+    2. [Website Title 2]
+    ...
+
+    This format is crucial. Always include all three sections: Answer, Detailed Summary, and references.
+
+    Use the provided tools (scrape_website, search and summarize) to accomplish these tasks.
     """
 )
 
@@ -45,70 +52,51 @@ tools = [search_tool, scrape_tool, summary_tool]
 
 tool_node = ToolNode(tools)
 
-model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", api_key=openai_api_key).bind_tools(tools=tools)  # type: ignore
+model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", api_key=openai_api_key).bind_tools(tools=tools)
 
-
-# Define the function that determines whether to continue or not
 def should_continue(state: MessagesState) -> Literal["tools", END]:
     messages = state["messages"]
     last_message = messages[-1]
-    # If the LLM makes a tool call, then we route to the "tools" node
     if last_message.tool_calls:
         return "tools"
-    # Otherwise, we stop (reply to the user)
     return END
 
-
-# Define the function that calls the model
 def call_model(state: MessagesState):
     messages = state["messages"]
     response = model.invoke(messages)
-    # We return a list, because this will get added to the existing list
+    # Log the model's thought process
+    st.write("🤔 Agent's Thought Process:")
+    st.write(response.content)
+    if response.tool_calls:
+        st.write("🛠️ Agent is using a tool:")
+        for tool_call in response.tool_calls:
+            # Check if tool_call is a dictionary
+            if isinstance(tool_call, dict):
+                tool_name = tool_call.get('name', 'Unknown tool')
+                tool_args = json.dumps(tool_call.get('arguments', {}))
+                st.write(f"- {tool_name}: {tool_args}")
+            else:
+                # Fallback for other structures
+                st.write(f"- Tool call: {tool_call}")
     return {"messages": [response]}
 
-
 def flow(query: str):
-
-    # Define a new graph
     workflow = StateGraph(MessagesState)
-
-    # Define the two nodes we will cycle between
     workflow.add_node("agent", call_model)
     workflow.add_node("tools", tool_node)
-
-    # Set the entrypoint as `agent`
-    # This means that this node is the first one called
     workflow.set_entry_point("agent")
-
-    # We now add a conditional edge
-    workflow.add_conditional_edges(
-        # First, we define the start node. We use `agent`.
-        # This means these are the edges taken after the `agent` node is called.
-        "agent",
-        # Next, we pass in the function that will determine which node is called next.
-        should_continue,
-    )
-
-    # We now add a normal edge from `tools` to `agent`.
-    # This means that after `tools` is called, `agent` node is called next.
+    workflow.add_conditional_edges("agent", should_continue)
     workflow.add_edge("tools", "agent")
-
-    # Initialize memory to persist state between graph runs
     checkpointer = MemorySaver()
-
-    # Finally, we compile it!
-    # This compiles it into a LangChain Runnable,
-    # meaning you can use it as you would any other runnable.
-    # Note that we're (optionally) passing the memory when compiling the graph
     app = workflow.compile(checkpointer=checkpointer)
 
-    # Use the Runnable
+    st.write("🔍 Starting research process...")
     final_state = app.invoke(
         {"messages": [HumanMessage(content=query)]},
         config={"configurable": {"thread_id": 42}},
     )
+    st.write("✅ Research process complete!")
     return final_state["messages"][-1].content
-
 
 def main():
     st.set_page_config(page_title="TUSHAR'S AI BUDDY", page_icon="🔍")
@@ -121,10 +109,11 @@ def main():
     if user_input:
         st.write("Your research objective: ", user_input)
 
-        result = flow(user_input)
+        with st.spinner("Researching..."):
+            result = flow(user_input)
 
+        st.success("Research complete!")
         st.info(result)
-
 
 if __name__ == "__main__":
     main()

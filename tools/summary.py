@@ -8,19 +8,16 @@ from pydantic import BaseModel, Field
 import os
 from dotenv import load_dotenv
 
-
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
-
 
 class SummaryInput(BaseModel):
     objective: str = Field(..., description="The research objective")
     content: str = Field(..., description="The content to summarize")
     url: str = Field(..., description="The source URL of the content")
 
-
 def summarize(objective: str, content: str, url: str):
-    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", api_key=openai_api_key)  # type: ignore
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", api_key=openai_api_key) # type: ignore
     text_splitter = RecursiveCharacterTextSplitter(
         separators=["\n\n", "\n"], chunk_size=10000, chunk_overlap=500
     )
@@ -50,15 +47,7 @@ def summarize(objective: str, content: str, url: str):
     )
     output = summary_chain.run(input_documents=docs, objective=objective)
 
-    # print(f"Summarized content: {output}")
-
     return {"summary": output, "source_url": url}
-
-
-# content = scrape_website("https://ai.meta.com/blog/meta-llama-3-1/")["content"]
-
-# summarize("Latest version of llama3 model?",content, "https://ai.meta.com/blog/meta-llama-3-1/")
-
 
 summary_tool = Tool(
     name="Summarize",
