@@ -52,7 +52,7 @@ tools = [search_tool, scrape_tool, summary_tool]
 
 tool_node = ToolNode(tools)
 
-model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", api_key=openai_api_key).bind_tools(tools=tools)
+model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", api_key=openai_api_key).bind_tools(tools=tools) # type: ignore
 
 def should_continue(state: MessagesState) -> Literal["tools", END]:
     messages = state["messages"]
@@ -99,9 +99,9 @@ def flow(query: str):
     return final_state["messages"][-1].content
 
 def main():
-    st.set_page_config(page_title="TUSHAR'S AI BUDDY", page_icon="🔍")
+    st.set_page_config(page_title="AI BUDDY", page_icon="🔍")
 
-    st.header("TUSHAR'S AI BUDDY")
+    st.header("YOUR AI BUDDY")
     st.subheader("A tool to help you with your research")
 
     user_input = st.text_input("Enter your research objective")
@@ -114,6 +114,8 @@ def main():
 
         st.success("Research complete!")
         st.info(result)
+
+    st.write("Happy Researching ❤️ by [Satyajeet]")
 
 if __name__ == "__main__":
     main()

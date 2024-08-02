@@ -11,5 +11,6 @@ selenium
 pydantic
 openai
 langsmith
-dotenv-python
+python-dotenv
 beautifulsoup4
+webdriver_manager
