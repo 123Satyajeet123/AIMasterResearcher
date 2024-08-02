@@ -1,0 +1,15 @@
+streamlit
+numpy
+pandas
+matplotlib
+langchain
+langgraph
+langchain-core
+langchain-openai
+langchain-community
+selenium
+pydantic
+openai
+langsmith
+dotenv-python
+beautifulsoup4
