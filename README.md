@@ -12,6 +12,7 @@ Create a virtual environment and install the required packages:
 2. pip install -r requirements.txt
 
 Run the application using Streamlit:
+
 3. streamlit run main.py
 
 Thats it...
